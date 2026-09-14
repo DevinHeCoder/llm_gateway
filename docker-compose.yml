@@ -1,0 +1,56 @@
+version: "3.8"
+
+services:
+  # LLM 网关
+  gateway:
+    build: .
+    ports:
+      - "9000:9000"
+    environment:
+      - GATEWAY_MODEL_PROVIDER=vllm_openai
+      - GATEWAY_MODEL_BASE_URL=http://vllm:8000/v1
+      - GATEWAY_MODEL_DEFAULT=qwen2.5-7b-instruct
+      - GATEWAY_RATE_LIMIT_PROVIDER=redis
+      - GATEWAY_REDIS_URL=redis://redis:6379/0
+      - GATEWAY_CACHE_PROVIDER=redis
+      - GATEWAY_CACHE_TTL_SECONDS=3600
+      - GATEWAY_CONCURRENCY_PROVIDER=semaphore
+      - GATEWAY_CONCURRENCY_MAX_CONCURRENT=10
+    depends_on:
+      - redis
+      - vllm
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+    restart: unless-stopped
+
+  # vLLM 推理服务（示例，需根据实际模型调整）
+  vllm:
+    image: vllm/vllm-openai:latest
+    ports:
+      - "8000:8000"
+    environment:
+      - VLLM_MODEL=/models/qwen2.5-7b-instruct
+    volumes:
+      - ./models:/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  # Redis（缓存 + 分布式限流）
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+
+volumes:
+  redis_data:

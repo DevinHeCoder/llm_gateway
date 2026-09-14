@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="410" viewBox="0 0 1200 410" font-family="'PingFang SC','Microsoft YaHei','Segoe UI',Arial,sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6B7280"/>
+    </marker>
+  </defs>
+
+  <!-- 标题 -->
+  <text x="45" y="30" font-size="26" font-weight="700" fill="#1A1B1C">轻量化 LLM 推理服务 &amp; LLMOps 网关平台</text>
+  <text x="45" y="56" font-size="14" fill="#6B7280">请求编排管道 · 限流 → 缓存 → 并发 → 推理 → 监控 · 87 个单元测试全绿 · Docker 一键部署</text>
+
+  <!-- 主流程节点 -->
+  <g>
+    <!-- 调用方 -->
+    <rect x="45" y="80" width="120" height="88" rx="10" fill="rgba(226,232,240,0.6)" stroke="#CBD5E1" stroke-width="1"/>
+    <text x="105" y="118" font-size="15" font-weight="600" fill="#1A1B1C" text-anchor="middle">调用方</text>
+    <text x="105" y="140" font-size="12" fill="#6B7280" text-anchor="middle">业务应用 / SDK</text>
+    <text x="105" y="156" font-size="11" fill="#94A3B8" text-anchor="middle">OpenAI 兼容</text>
+
+    <line x1="167" y1="124" x2="185" y2="124" stroke="#6B7280" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- API 层 -->
+    <rect x="187" y="80" width="150" height="88" rx="10" fill="rgba(163,213,232,0.30)" stroke="#8BC8EA" stroke-width="1.2"/>
+    <text x="262" y="118" font-size="15" font-weight="600" fill="#1A1B1C" text-anchor="middle">API 层 (P4)</text>
+    <text x="262" y="140" font-size="12" fill="#475569" text-anchor="middle">FastAPI 路由</text>
+    <text x="262" y="156" font-size="12" fill="#475569" text-anchor="middle">/v1/chat/completions</text>
+
+    <line x1="339" y1="124" x2="357" y2="124" stroke="#6B7280" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- 网关核心 -->
+    <rect x="359" y="80" width="190" height="88" rx="10" fill="rgba(155,187,244,0.45)" stroke="#5B7FD9" stroke-width="1.4"/>
+    <text x="454" y="112" font-size="15" font-weight="700" fill="#1A1B1C" text-anchor="middle">网关核心 (P3)</text>
+    <text x="454" y="134" font-size="12" fill="#334155" text-anchor="middle">Gateway 请求编排</text>
+    <text x="454" y="152" font-size="11" fill="#334155" text-anchor="middle">限流 → 缓存 → 并发 → 推理 → 监控</text>
+
+    <line x1="551" y1="124" x2="569" y2="124" stroke="#6B7280" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- 推理客户端 -->
+    <rect x="571" y="80" width="160" height="88" rx="10" fill="rgba(163,213,232,0.30)" stroke="#8BC8EA" stroke-width="1.2"/>
+    <text x="651" y="112" font-size="15" font-weight="600" fill="#1A1B1C" text-anchor="middle">推理客户端 (P1)</text>
+    <text x="651" y="134" font-size="12" fill="#475569" text-anchor="middle">ModelClient</text>
+    <text x="651" y="152" font-size="12" fill="#475569" text-anchor="middle">vllm_openai · mock</text>
+
+    <line x1="733" y1="124" x2="751" y2="124" stroke="#6B7280" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- vLLM 推理服务 -->
+    <rect x="753" y="80" width="160" height="88" rx="10" fill="rgba(148,216,195,0.30)" stroke="#7CC7A9" stroke-width="1.2"/>
+    <text x="833" y="112" font-size="15" font-weight="600" fill="#1A1B1C" text-anchor="middle">vLLM 推理服务</text>
+    <text x="833" y="134" font-size="12" fill="#475569" text-anchor="middle">本地高速推理</text>
+    <text x="833" y="152" font-size="12" fill="#475569" text-anchor="middle">OpenAI 兼容 API</text>
+
+    <line x1="915" y1="124" x2="933" y2="124" stroke="#6B7280" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- 回答输出 -->
+    <rect x="935" y="80" width="130" height="88" rx="10" fill="rgba(226,232,240,0.6)" stroke="#CBD5E1" stroke-width="1"/>
+    <text x="1000" y="118" font-size="15" font-weight="600" fill="#1A1B1C" text-anchor="middle">回答输出</text>
+    <text x="1000" y="140" font-size="12" fill="#6B7280" text-anchor="middle">流式 / 非流式</text>
+    <text x="1000" y="156" font-size="11" fill="#94A3B8" text-anchor="middle">缓存命中直返</text>
+  </g>
+
+  <!-- 可插拔组件层 -->
+  <rect x="45" y="188" width="1110" height="82" rx="12" fill="rgba(228,227,221,0.5)" stroke="#D6D5CE" stroke-width="1"/>
+  <text x="65" y="214" font-size="14" font-weight="600" fill="#1A1B1C">可插拔组件层（P1 基础组件 · P2 业务能力）</text>
+  <text x="65" y="238" font-size="13" fill="#475569">RateLimiter 令牌桶·滑动窗口·Redis  ·  Cache Redis·内存LRU  ·  Concurrency 信号量</text>
+  <text x="65" y="258" font-size="13" fill="#475569">Monitor P50/P95/P99·错误告警·Prometheus  ·  ModelManager 注册·版本切换·热加载  ·  PromptManager 版本管理·A/B测试</text>
+
+  <!-- 公共基础层 -->
+  <rect x="45" y="284" width="1110" height="56" rx="12" fill="rgba(228,227,221,0.5)" stroke="#D6D5CE" stroke-width="1"/>
+  <text x="65" y="310" font-size="14" font-weight="600" fill="#1A1B1C">公共基础层</text>
+  <text x="65" y="330" font-size="13" fill="#475569">Registry 泛型注册表（可插拔） · Config（YAML + ${ENV} 注入） · Logger · 统一异常体系</text>
+
+  <!-- 底部能力标注 -->
+  <text x="65" y="372" font-size="13" fill="#475569">
+    FastAPI API 层 (/v1/models /v1/prompts /metrics /health)  ·  部署 (Docker · Compose: gateway + vllm + redis)
+  </text>
+  <text x="65" y="394" font-size="12" fill="#94A3B8">
+    新增实现 = 写一个类 + @registry.register("name")，上层零改动  ·  外部依赖: vLLM(8000) · Redis(6379) · SQLite(prompts.db)
+  </text>
+</svg>

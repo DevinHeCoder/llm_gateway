@@ -1,0 +1,115 @@
+# ==================== LLM Gateway 全局配置 ====================
+# 说明：
+#   1. ${ENV_VAR} 或 ${ENV_VAR:默认值} 会被环境变量展开，用于注入密钥等敏感信息；
+#      未设置且无默认值时启动即报错（ConfigError），避免静默用错配置。
+#   2. 环境变量 GATEWAY_MODEL__MODEL=x 可覆盖下方任意路径（前缀 GATEWAY_ + 双下划线分隔层级）。
+#   3. 各层的 provider 字段（model_client/rate_limiter/cache/monitor 等）即"可插拔"的选型开关，
+#      对应各层 Registry 中注册的实现名。
+
+app:
+  name: llm_gateway
+  version: 0.1.0
+
+# 日志配置路径（相对项目根）
+logging:
+  config_path: config/logging.yaml
+
+# ---------------- P1 推理客户端层（可插拔注册中心）----------------
+model:
+  # provider: vllm_openai（vLLM OpenAI 兼容 API）| mock（无推理服务演示/测试）
+  provider: ${GATEWAY_MODEL_PROVIDER:mock}
+  # vLLM 服务地址（OpenAI 兼容端点）
+  base_url: ${GATEWAY_MODEL_BASE_URL:http://localhost:8000/v1}
+  api_key: ${GATEWAY_MODEL_API_KEY:}
+  # 默认模型名称（请求未指定 model 时使用）
+  default_model: ${GATEWAY_MODEL_DEFAULT:qwen2.5-7b-instruct}
+  # 请求超时（秒）
+  timeout: 60
+  # 最大重试次数
+  max_retries: 2
+
+# ---------------- P1 限流层（可插拔注册中心）----------------
+rate_limit:
+  # provider: token_bucket（进程内令牌桶）| sliding_window（滑动窗口）| redis（Redis 分布式限流）| none（不限制）
+  provider: ${GATEWAY_RATE_LIMIT_PROVIDER:token_bucket}
+  # 每秒允许的请求数（令牌桶填充速率）
+  requests_per_second: 10
+  # 令牌桶容量（允许的突发请求数）
+  burst_size: 20
+  # Redis 限流配置（provider=redis 时生效）
+  redis_url: ${GATEWAY_REDIS_URL:redis://localhost:6379/1}
+  # 限流键前缀
+  key_prefix: "gateway:rate_limit"
+
+# ---------------- P1 缓存层（可插拔注册中心）----------------
+cache:
+  # provider: redis（Redis 缓存）| in_memory（内存 LRU）| none（不缓存）
+  provider: ${GATEWAY_CACHE_PROVIDER:none}
+  # 缓存 TTL（秒）
+  ttl_seconds: 3600
+  # 内存缓存最大条目数（provider=in_memory 时生效）
+  max_entries: 1000
+  # Redis 配置（provider=redis 时生效）
+  redis_url: ${GATEWAY_REDIS_URL:redis://localhost:6379/0}
+  # 缓存键前缀
+  key_prefix: "gateway:cache"
+
+# ---------------- P1 并发控制层 ----------------
+concurrency:
+  # provider: semaphore（信号量控制）| none（不限制）
+  provider: ${GATEWAY_CONCURRENCY_PROVIDER:semaphore}
+  # 最大并发请求数
+  max_concurrent: 5
+  # 排队等待超时（秒），0 表示不等待直接拒绝
+  queue_timeout: 30
+
+# ---------------- P2 监控统计层（可插拔注册中心）----------------
+monitor:
+  # provider: file_metrics（内存+文件聚合）| prometheus（Prometheus 指标导出）| none
+  provider: ${GATEWAY_MONITOR_PROVIDER:file_metrics}
+  # 指标保留窗口（秒）
+  retention_seconds: 86400
+  # 错误率告警阈值（0-1）
+  error_rate_threshold: 0.05
+  # 告警 webhook（可选，为空则仅日志告警）
+  alert_webhook: ${GATEWAY_ALERT_WEBHOOK:}
+
+# ---------------- P2 模型管理层 ----------------
+model_manager:
+  # provider: vllm（通过 vLLM API 管理）| local（本地配置管理）
+  provider: ${GATEWAY_MODEL_MANAGER_PROVIDER:local}
+  # vLLM 管理 API 地址
+  management_url: ${GATEWAY_MODEL_MANAGEMENT_URL:http://localhost:8000}
+  # 健康检查间隔（秒）
+  health_check_interval: 30
+  # 可用模型列表（local provider 时使用）
+  models:
+    - name: qwen2.5-7b-instruct
+      path: /models/qwen2.5-7b-instruct
+      version: "1.0"
+      status: active
+    - name: qwen2.5-14b-instruct
+      path: /models/qwen2.5-14b-instruct
+      version: "1.0"
+      status: standby
+
+# ---------------- P2 Prompt 管理层 ----------------
+prompt_manager:
+  # provider: sqlite（SQLite 持久化）| memory（内存存储）
+  provider: ${GATEWAY_PROMPT_MANAGER_PROVIDER:sqlite}
+  # SQLite 数据库路径（相对路径基于 data/ 目录）
+  db_path: ${GATEWAY_PROMPT_DB_PATH:prompts.db}
+
+# ---------------- P3 网关核心 ----------------
+gateway:
+  # 是否启用请求缓存
+  enable_cache: true
+  # 是否启用监控埋点
+  enable_monitor: true
+  # 是否启用 Prompt 版本注入
+  enable_prompt_injection: false
+
+# ---------------- P4 服务 ----------------
+server:
+  host: 0.0.0.0
+  port: 9000
