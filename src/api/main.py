@@ -48,7 +48,8 @@ def create_app(
     app = FastAPI(
         title=app_cfg.get("name", "LLM Gateway"),
         version=app_cfg.get("version", "0.1.0"),
-        description="轻量化 LLM 推理服务 & LLMOps 网关平台：vLLM 上层代理，"
+        description="轻量化 LLM 推理服务 & LLMOps 网关平台：统一代理云端 LLM API"
+        "（通义 DashScope / DeepSeek 等 OpenAI 兼容服务）或本地推理后端，"
         "提供限流、缓存、并发控制、监控统计、Prompt 版本管理等能力。",
         lifespan=lifespan,
     )
