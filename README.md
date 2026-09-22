@@ -328,13 +328,16 @@ export GATEWAY_MODEL__BASE_URL=http://localhost:8000/v1
 export GATEWAY_MODEL__DEFAULT_MODEL=Qwen/Qwen2.5-7B-Instruct
 ```
 
-## 在线演示
+## 快速体验
 
-无需安装即可在线体验网关核心能力（真实云端 LLM 转发、模型管理、限流缓存、监控统计）：
+Docker 一键启动后访问 Swagger 网关控制台（本地即可完整体验）：
 
-[**▶ 打开在线演示**](https://your-gateway.example.com/docs) · 服务器托管 · Swagger 网关控制台
+```bash
+docker compose up -d
+# 打开 http://localhost:8000/docs
+```
 
-支持：直接在线调 `/chat`（真实转发通义 / DeepSeek）、`/models` 模型管理与切换、`/metrics` 延迟 / token / 错误率监控、Redis 限流与缓存开箱即用。
+支持：`/chat`（OpenAI 兼容协议，可对接通义 / DeepSeek / Ollama）、`/models` 模型管理与切换、`/metrics` 延迟 / token / 错误率监控、Redis 限流与缓存开箱即用。部署到公网时请务必开启 API 鉴权，避免额度被外部调用消耗。
 
 ## API 文档
 
