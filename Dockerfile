@@ -2,12 +2,7 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# 安装系统依赖
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
-
-# 安装 Python 依赖
+# 安装 Python 依赖（requirements 均为纯 Python 包，提供预编译 wheel，无需 gcc 编译工具链）
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 

@@ -90,3 +90,20 @@ class TestBuildModelClient:
     def test_registry_has_mock(self):
         """测试注册表包含 mock 实现。"""
         assert model_client_registry.has("mock")
+
+    def test_build_openai_compatible(self):
+        """测试构建 OpenAI 兼容云端 API 客户端（DeepSeek / 通义 DashScope 场景）。"""
+        from src.model_client.vllm_client import OpenAICompatibleClient, VLLMClient
+
+        assert model_client_registry.has("openai_compatible")
+        client = build_model_client(
+            {
+                "provider": "openai_compatible",
+                "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+                "api_key": "test-key",
+                "default_model": "qwen3-max",
+            }
+        )
+        assert isinstance(client, OpenAICompatibleClient)
+        assert isinstance(client, VLLMClient)
+        assert client.default_model == "qwen3-max"

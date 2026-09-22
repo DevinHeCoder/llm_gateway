@@ -1,15 +1,17 @@
 version: "3.8"
 
 services:
-  # LLM 网关
+  # LLM 网关（代理云端 LLM API：OpenAI 兼容协议，DeepSeek / 通义 DashScope 等）
   gateway:
     build: .
     ports:
-      - "9000:9000"
+      - "8003:9000"
     environment:
-      - GATEWAY_MODEL_PROVIDER=vllm_openai
-      - GATEWAY_MODEL_BASE_URL=http://vllm:8000/v1
-      - GATEWAY_MODEL_DEFAULT=qwen2.5-7b-instruct
+      # 推理后端：openai_compatible（云端 OpenAI 兼容 API），不依赖本地 GPU
+      - GATEWAY_MODEL_PROVIDER=openai_compatible
+      - GATEWAY_MODEL_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+      - GATEWAY_MODEL_API_KEY=${GATEWAY_MODEL_API_KEY}
+      - GATEWAY_MODEL_DEFAULT=qwen3-max
       - GATEWAY_RATE_LIMIT_PROVIDER=redis
       - GATEWAY_REDIS_URL=redis://redis:6379/0
       - GATEWAY_CACHE_PROVIDER=redis
@@ -18,28 +20,9 @@ services:
       - GATEWAY_CONCURRENCY_MAX_CONCURRENT=10
     depends_on:
       - redis
-      - vllm
     volumes:
       - ./logs:/app/logs
       - ./data:/app/data
-    restart: unless-stopped
-
-  # vLLM 推理服务（示例，需根据实际模型调整）
-  vllm:
-    image: vllm/vllm-openai:latest
-    ports:
-      - "8000:8000"
-    environment:
-      - VLLM_MODEL=/models/qwen2.5-7b-instruct
-    volumes:
-      - ./models:/models
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
     restart: unless-stopped
 
   # Redis（缓存 + 分布式限流）

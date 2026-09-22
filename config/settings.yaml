@@ -16,7 +16,8 @@ logging:
 
 # ---------------- P1 推理客户端层（可插拔注册中心）----------------
 model:
-  # provider: vllm_openai（vLLM OpenAI 兼容 API）| mock（无推理服务演示/测试）
+  # provider: openai_compatible（任意 OpenAI 兼容云端 API，如 DeepSeek / 通义 DashScope）
+  #          | vllm_openai（本地 vLLM OpenAI 兼容 API）| mock（无推理服务演示/测试）
   provider: ${GATEWAY_MODEL_PROVIDER:mock}
   # vLLM 服务地址（OpenAI 兼容端点）
   base_url: ${GATEWAY_MODEL_BASE_URL:http://localhost:8000/v1}
@@ -82,14 +83,14 @@ model_manager:
   management_url: ${GATEWAY_MODEL_MANAGEMENT_URL:http://localhost:8000}
   # 健康检查间隔（秒）
   health_check_interval: 30
-  # 可用模型列表（local provider 时使用）
+  # 可用模型列表（local provider 时使用；云端 API 场景为已开通的云端模型）
   models:
-    - name: qwen2.5-7b-instruct
-      path: /models/qwen2.5-7b-instruct
+    - name: qwen3-max
+      path: cloud/dashscope
       version: "1.0"
       status: active
-    - name: qwen2.5-14b-instruct
-      path: /models/qwen2.5-14b-instruct
+    - name: deepseek-chat
+      path: cloud/deepseek
       version: "1.0"
       status: standby
 

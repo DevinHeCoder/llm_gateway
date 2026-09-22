@@ -222,3 +222,13 @@ class VLLMClient(ModelClient):
             except Exception:
                 pass
         logger.info("VLLMClient 已关闭")
+
+
+@model_client_registry.register("openai_compatible")
+class OpenAICompatibleClient(VLLMClient):
+    """任意 OpenAI 兼容云端 API 客户端（DeepSeek / 通义 DashScope 等）。
+
+    复用 VLLMClient 的 OpenAI 兼容协议实现：POST {base_url}/chat/completions，
+    使用 Bearer API Key 鉴权，支持同步/流式调用与重试。
+    与 vllm_openai 的唯一区别是注册名与语义定位（云端 API 代理场景）。
+    """
