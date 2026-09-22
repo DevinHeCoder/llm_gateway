@@ -328,11 +328,13 @@ export GATEWAY_MODEL__BASE_URL=http://localhost:8000/v1
 export GATEWAY_MODEL__DEFAULT_MODEL=Qwen/Qwen2.5-7B-Instruct
 ```
 
-## 在线体验
+## 在线演示
 
-网关已部署公网，Swagger 面板可直接在线调试 `/chat`、`/models`、`/metrics`（即网关控制台）：
+无需安装即可在线体验网关核心能力（真实云端 LLM 转发、模型管理、限流缓存、监控统计）：
 
-- **网关 API 面板**：https://your-gateway.example.com/docs
+[**▶ 打开在线演示**](https://your-gateway.example.com/docs) · 服务器托管 · Swagger 网关控制台
+
+支持：直接在线调 `/chat`（真实转发通义 / DeepSeek）、`/models` 模型管理与切换、`/metrics` 延迟 / token / 错误率监控、Redis 限流与缓存开箱即用。
 
 ## API 文档
 
