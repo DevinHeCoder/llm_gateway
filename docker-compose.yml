@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   # LLM 网关（代理云端 LLM API：OpenAI 兼容协议，DeepSeek / 通义 DashScope 等）
   gateway:
@@ -37,3 +35,9 @@ services:
 
 volumes:
   redis_data:
+
+# 网络：默认本地自建；部署到与 rag/agent 同机时，在 .env 设
+# GATEWAY_NETWORK=rag_engine_default 即可让 nginx 反代到 gateway 容器名
+networks:
+  default:
+    name: ${GATEWAY_NETWORK:-llm_gateway_default}
