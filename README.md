@@ -1,6 +1,6 @@
 # 轻量化 LLM 推理服务 & LLMOps 网关平台
 
-> vLLM 上层代理网关平台，不实现底层推理；负责流量管控、缓存、监控统计、Prompt 版本管理与 A/B 测试。
+> OpenAI 兼容 API 网关平台：代理云端 LLM API（通义 DashScope / DeepSeek）或本地 vLLM，不实现底层推理；负责流量管控、缓存、监控统计、Prompt 版本管理与 A/B 测试。
 
 ## 架构概览
 
@@ -30,7 +30,7 @@ flowchart TB
     end
 
     subgraph L1["P1 · 基础组件层（可插拔）"]
-        MC["ModelClient 推理客户端<br/>vllm_openai / mock"]
+        MC["ModelClient 推理客户端<br/>openai_compatible / vllm_openai / mock"]
         RL["RateLimiter 限流<br/>token_bucket / sliding_window / redis"]
         CA["Cache 缓存<br/>redis / in_memory / none"]
         CO["Concurrency 并发控制<br/>semaphore / none"]
@@ -43,7 +43,7 @@ flowchart TB
     end
 
     subgraph E["外部依赖"]
-        V1["vLLM 推理服务<br/>（OpenAI 兼容 API）"]
+        V1["云端 LLM API（通义 DashScope / DeepSeek）<br/>或本地 vLLM（OpenAI 兼容）"]
         R2["Redis<br/>缓存 / 分布式限流"]
         Q1["SQLite<br/>Prompt 版本持久化"]
         P1["Prometheus<br/>指标抓取"]
@@ -82,8 +82,8 @@ flowchart LR
     D -->|"命中"| X2["直接返回缓存响应<br/>（跳过推理）"]
     D -->|"未命中"| E["③ 并发控制<br/>获取信号量"]
     E -->|"超时"| X3["503 并发超时"]
-    E -->|"获得许可"| F["④ 模型推理<br/>ModelClient → vLLM"]
-    F --> H["vLLM 推理服务"]
+    E -->|"获得许可"| F["④ 模型推理<br/>ModelClient → 云端/本地推理后端"]
+    F --> H["通义 DashScope / DeepSeek<br/>或本地 vLLM"]
     H --> F
     F --> I["⑤ 监控埋点<br/>延迟 / token / 错误率"]
     I --> J["⑥ 缓存回写"]
@@ -92,7 +92,7 @@ flowchart LR
 
 ### 核心特性
 
-- **统一推理接口**：OpenAI 兼容 API，支持 vLLM / Mock 等多种后端
+- **统一推理接口**：OpenAI 兼容 API，支持云端 API（通义 / DeepSeek）/ 本地 vLLM / Mock 等多种后端
 - **请求限流**：令牌桶 / 滑动窗口 / Redis 分布式限流
 - **响应缓存**：基于 prompt hash 的请求缓存，支持 Redis / 内存 LRU
 - **并发控制**：信号量控制最大并发请求数
@@ -118,7 +118,7 @@ llm_gateway/
 │   │   └── logger.py          # 日志工具
 │   ├── model_client/          # P1 推理客户端层
 │   │   ├── base.py            # ModelClient ABC
-│   │   ├── vllm_client.py     # vLLM OpenAI 兼容 HTTP 客户端
+│   │   ├── vllm_client.py     # OpenAI 兼容客户端（云端 API / 本地 vLLM）
 │   │   ├── mock_client.py     # Mock 客户端（测试用）
 │   │   └── registry.py
 │   ├── rate_limiter/          # P1 限流层
@@ -186,10 +186,10 @@ llm_gateway/
 pip install -r requirements.txt
 ```
 
-### 2. 启动服务（使用 Mock 客户端，无需 vLLM）
+### 2. 启动服务（使用 Mock 客户端，无需任何推理后端）
 
 ```bash
-# 默认使用 mock provider，无需真实 vLLM 服务
+# 默认使用 mock provider，无需真实推理服务
 uvicorn src.api.main:app --host 0.0.0.0 --port 9000
 ```
 
@@ -250,7 +250,7 @@ pytest tests/ -v
 
 | 配置段 | 说明 | 可选 provider |
 |--------|------|--------------|
-| `model` | 推理客户端 | `vllm_openai` / `mock` |
+| `model` | 推理客户端 | `openai_compatible`（云端 API）/ `vllm_openai` / `mock` |
 | `rate_limit` | 限流 | `token_bucket` / `sliding_window` / `redis` / `none` |
 | `cache` | 缓存 | `redis` / `in_memory` / `none` |
 | `concurrency` | 并发控制 | `semaphore` / `none` |
@@ -263,10 +263,11 @@ pytest tests/ -v
 所有配置项均可通过环境变量覆盖，格式为 `GATEWAY_` + 配置路径（双下划线分隔层级）：
 
 ```bash
-# 切换为 vLLM 后端
-export GATEWAY_MODEL__PROVIDER=vllm_openai
-export GATEWAY_MODEL__BASE_URL=http://localhost:8000/v1
-export GATEWAY_MODEL__DEFAULT_MODEL=qwen2.5-7b-instruct
+# 代理云端 LLM API（推荐，无需 GPU）
+export GATEWAY_MODEL__PROVIDER=openai_compatible
+export GATEWAY_MODEL__BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+export GATEWAY_MODEL__API_KEY=sk-your-key
+export GATEWAY_MODEL__DEFAULT_MODEL=qwen3-max
 
 # 启用 Redis 缓存
 export GATEWAY_CACHE__PROVIDER=redis
@@ -277,7 +278,37 @@ export GATEWAY_RATE_LIMIT__REQUESTS_PER_SECOND=50
 export GATEWAY_RATE_LIMIT__BURST_SIZE=100
 ```
 
-## 连接真实 vLLM 服务
+## Docker Compose 一键部署（推荐）
+
+无需 GPU，代理云端 LLM API（通义 DashScope / DeepSeek），仅需 gateway + redis 两个轻量容器：
+
+```bash
+# 1. 配置云端 API Key（DeepSeek / 通义 DashScope，OpenAI 兼容）
+cp .env.example .env
+# 编辑 .env 填入真实 GATEWAY_MODEL_API_KEY
+
+# 2. 构建并启动
+docker compose up -d --build
+
+# 3. 验证
+curl http://localhost:8003/health
+# 浏览器打开 Swagger 面板（可在线调试 /chat、/models、/metrics）：
+# http://localhost:8003/docs
+```
+
+这会启动：
+- `gateway`: LLM 网关服务（宿主机端口 8003 → 容器 9000），默认代理通义 DashScope（qwen3-max）
+- `redis`: Redis 缓存 + 分布式限流（端口 6379）
+
+切换后端只需改环境变量（或 `config/settings.yaml`）：
+
+| 后端 | `GATEWAY_MODEL_PROVIDER` | `GATEWAY_MODEL_BASE_URL` |
+|------|------------------------|--------------------------|
+| 通义 DashScope | `openai_compatible` | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
+| DeepSeek | `openai_compatible` | `https://api.deepseek.com/v1` |
+| 本地 vLLM（需 GPU） | `vllm_openai` | `http://localhost:8000/v1` |
+
+## 连接本地 vLLM 服务（可选，需 GPU）
 
 ### 1. 启动 vLLM 服务
 
@@ -297,20 +328,17 @@ export GATEWAY_MODEL__BASE_URL=http://localhost:8000/v1
 export GATEWAY_MODEL__DEFAULT_MODEL=Qwen/Qwen2.5-7B-Instruct
 ```
 
-### 3. 使用 Docker Compose 一键启动
+## 在线体验
 
-```bash
-docker-compose up -d
-```
+网关已部署公网，Swagger 面板可直接在线调试 `/chat`、`/models`、`/metrics`（即网关控制台）：
 
-这会启动：
-- `gateway`: LLM 网关服务（端口 9000）
-- `vllm`: vLLM 推理服务（端口 8000，需 GPU）
-- `redis`: Redis 缓存 + 分布式限流（端口 6379）
+- **网关 API 面板**：https://your-gateway.example.com/docs
 
 ## API 文档
 
-启动服务后访问 `http://localhost:9000/docs` 查看完整的 Swagger API 文档。
+启动服务后访问 Swagger 文档：
+- Docker Compose 部署：`http://localhost:8003/docs`
+- 本地 uvicorn：`http://localhost:9000/docs`
 
 ### 主要端点
 
